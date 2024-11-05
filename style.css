@@ -1,0 +1,89 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #f4f4f4;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.game-container {
+  position: relative;
+  width: 80vw; /* Použití šířky obrazovky 80% */
+  height: 200px;
+  background-color: #fff;
+  border: 2px solid #000;
+  overflow: hidden;
+}
+
+#player {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background-color: green;
+  bottom: 0;
+  left: 50px;
+}
+
+.obstacle {
+  position: absolute;
+  width: 20px;
+  height: 40px;
+  background-color: red;
+  bottom: 0;
+  right: 0;
+}
+
+#coin {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background-color: yellow;
+  border-radius: 50%;
+  display: none; /* Na začátku je coin skrytý */
+}
+
+#score, #time, #highscore {
+  position: absolute;
+  top: 10px;
+  font-size: 20px;
+  color: black;
+}
+
+#score {
+  left: 10px;
+}
+
+#time {
+  right: 10px;
+}
+
+#highscore {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 20px;
+  color: black;
+}
+
+/* Responzivní design pro mobilní zařízení */
+@media (max-width: 768px) {
+  .game-container {
+      width: 90vw; /* Šířka na mobilních zařízeních */
+  }
+  #player {
+      width: 30px;
+      height: 30px;
+  }
+  .obstacle {
+      width: 15px;
+      height: 30px;
+  }
+}
