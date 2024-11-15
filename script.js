@@ -10,19 +10,19 @@ let villageGrowth = 0;
 let freeWorkers = 5;
 let maxWorkers = 5;
 let resources = {
-    wood: 0,
-    stone: 0,
-    coal: 0,
-    iron: 0,
-    gold: 0,
-    planks: 0,
-    stoneChisels: 0,
-    ironIngot: 0,
-    goldIngot: 0,
-    food: 0,
-    wool: 0,
-    meat: 0,
-    tools: 0
+    wood: 1100,
+    stone: 110,
+    coal: 110,
+    iron: 110,
+    gold: 110,
+    planks: 110,
+    stoneChisels: 110,
+    ironIngot: 110,
+    goldIngot: 110,
+    food: 110,
+    wool: 110,
+    meat: 110,
+    tools: 110
 };
 
 // Nové budovy
