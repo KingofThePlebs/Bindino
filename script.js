@@ -93,6 +93,13 @@ let resourceAssignments = {
     gold: 0
 };
 
+// Workers assigned to buildings
+let buildingAssignments = {
+    sawmill: 0,
+    stoneWorkshop: 0,
+    furnace: 0
+};
+
 // Inicializace hry
 function init() {
     // Načtení uložené hry, pokud existuje
@@ -110,8 +117,9 @@ function init() {
     // Vykreslení crafting tabulky
     renderCraftingTable();
 
-    // Vykreslení ovládacích prvků pro suroviny
+    // Vykreslení ovládacích prvků pro suroviny a budovy
     renderResourceControls();
+    renderBuildingControls();
 
     // Hlavní smyčka
     setInterval(gameLoop, 50);
@@ -157,27 +165,29 @@ function update() {
 
     // Produkce v budovách
     buildings.forEach(building => {
-        if (building.workers > 0) {
-            if (building.type === 'sawmill') {
-                if (resources.wood >= building.workers) {
-                    resources.wood -= building.workers;
-                    resources.planks += building.workers;
+        const buildingType = building.type;
+        const assignedWorkers = buildingAssignments[buildingType];
+        if (assignedWorkers > 0) {
+            if (buildingType === 'sawmill') {
+                if (resources.wood >= assignedWorkers) {
+                    resources.wood -= assignedWorkers;
+                    resources.planks += assignedWorkers;
                 }
-            } else if (building.type === 'stoneWorkshop') {
-                if (resources.stone >= building.workers) {
-                    resources.stone -= building.workers;
-                    resources.stoneChisels += building.workers;
+            } else if (buildingType === 'stoneWorkshop') {
+                if (resources.stone >= assignedWorkers) {
+                    resources.stone -= assignedWorkers;
+                    resources.stoneChisels += assignedWorkers;
                 }
-            } else if (building.type === 'furnace') {
-                if (resources.coal >= building.workers) {
-                    if (resources.iron >= building.workers) {
-                        resources.iron -= building.workers;
-                        resources.coal -= building.workers;
-                        resources.ironIngot += building.workers;
-                    } else if (resources.gold >= building.workers) {
-                        resources.gold -= building.workers;
-                        resources.coal -= building.workers;
-                        resources.goldIngot += building.workers;
+            } else if (buildingType === 'furnace') {
+                if (resources.coal >= assignedWorkers) {
+                    if (resources.iron >= assignedWorkers) {
+                        resources.iron -= assignedWorkers;
+                        resources.coal -= assignedWorkers;
+                        resources.ironIngot += assignedWorkers;
+                    } else if (resources.gold >= assignedWorkers) {
+                        resources.gold -= assignedWorkers;
+                        resources.coal -= assignedWorkers;
+                        resources.goldIngot += assignedWorkers;
                     }
                 }
             }
@@ -254,9 +264,9 @@ function draw() {
         ctx.closePath();
         ctx.fill();
 
-        // Zobrazení počtu workerů v budově
+        // Zobrazení typu budovy
         ctx.fillStyle = 'black';
-        ctx.fillText(`Workeři: ${building.workers}`, bx - 25, by + 35);
+        ctx.fillText(`${building.type}`, bx - 25, by + 35);
     });
 }
 
@@ -345,6 +355,8 @@ function craftItem(index) {
             resources[res] -= item.requirements[res];
         }
         item.action();
+        // Aktualizace ovládacích prvků budov
+        renderBuildingControls();
     } else {
         alert('Nemáš dostatek surovin!');
     }
@@ -352,7 +364,7 @@ function craftItem(index) {
 
 // Funkce pro stavbu budovy
 function buildBuilding(type) {
-    buildings.push({ type: type, workers: 0 });
+    buildings.push({ type: type });
 }
 
 // Funkce pro vykreslení ovládacích prvků pro suroviny
@@ -379,6 +391,38 @@ function renderResourceControls() {
         div.appendChild(plusBtn);
 
         resourceControlsDiv.appendChild(div);
+    });
+}
+
+// Funkce pro vykreslení ovládacích prvků pro budovy
+function renderBuildingControls() {
+    const buildingControlsDiv = document.getElementById('buildingControls');
+    buildingControlsDiv.innerHTML = '';
+
+    // Seznam unikátních typů budov
+    const buildingTypes = [...new Set(buildings.map(b => b.type))];
+
+    buildingTypes.forEach(type => {
+        const count = buildings.filter(b => b.type === type).length;
+        const div = document.createElement('div');
+        div.className = 'building-control';
+
+        const label = document.createElement('span');
+        label.textContent = `${type} (Budovy: ${count}, Workeři: ${buildingAssignments[type] || 0})`;
+
+        const minusBtn = document.createElement('button');
+        minusBtn.textContent = '-';
+        minusBtn.onclick = () => removeWorkerFromBuilding(type);
+
+        const plusBtn = document.createElement('button');
+        plusBtn.textContent = '+';
+        plusBtn.onclick = () => addWorkerToBuilding(type);
+
+        div.appendChild(label);
+        div.appendChild(minusBtn);
+        div.appendChild(plusBtn);
+
+        buildingControlsDiv.appendChild(div);
     });
 }
 
@@ -418,12 +462,31 @@ function removeWorkerFromResource(resourceType) {
     }
 }
 
-// Přidání event listenerů
-/* Už nepotřebujeme tento listener, protože přidáváme workery přes tlačítka
-canvas.addEventListener('click', function(event) {
-    // ...
-});
-*/
+// Funkce pro přidání a odebrání workerů z budov
+function addWorkerToBuilding(buildingType) {
+    const buildingCount = buildings.filter(b => b.type === buildingType).length;
+    const assignedWorkers = buildingAssignments[buildingType] || 0;
+
+    if (assignedWorkers < buildingCount && freeWorkers > 0) {
+        buildingAssignments[buildingType] = assignedWorkers + 1;
+        freeWorkers--;
+        renderBuildingControls();
+    } else {
+        alert('Nemůžeš přidat více workerů do této budovy!');
+    }
+}
+
+function removeWorkerFromBuilding(buildingType) {
+    const assignedWorkers = buildingAssignments[buildingType] || 0;
+
+    if (assignedWorkers > 0) {
+        buildingAssignments[buildingType] = assignedWorkers - 1;
+        freeWorkers++;
+        renderBuildingControls();
+    } else {
+        alert('V této budově nemáš žádné workery!');
+    }
+}
 
 // Funkce pro ukládání hry
 function saveGame() {
@@ -435,6 +498,7 @@ function saveGame() {
         buildings,
         gameTime,
         resourceAssignments,
+        buildingAssignments,
         villageGrowth
     };
     localStorage.setItem('villageIdleSave', JSON.stringify(gameData));
@@ -453,12 +517,22 @@ function loadGame() {
         buildings = gameData.buildings.map(building => ({ ...building }));
         gameTime = gameData.gameTime || 0;
         resourceAssignments = { ...gameData.resourceAssignments };
+        buildingAssignments = { ...gameData.buildingAssignments };
         villageGrowth = gameData.villageGrowth || 0;
     }
 }
 
-// Přidání event listeneru na tlačítko Uložit hru
+// Funkce pro resetování hry
+function resetGame() {
+    if (confirm('Opravdu chceš resetovat hru?')) {
+        localStorage.removeItem('villageIdleSave');
+        location.reload();
+    }
+}
+
+// Přidání event listenerů na tlačítka
 document.getElementById('saveButton').addEventListener('click', saveGame);
+document.getElementById('resetButton').addEventListener('click', resetGame);
 
 // Inicializace hry
 init();
