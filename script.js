@@ -2,6 +2,14 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+// Nastavení velikosti plátna podle velikosti okna
+function resizeCanvas() {
+    canvas.width = window.innerWidth - (window.innerWidth > 800 ? 300 : 0); // Odečte šířku UI na PC
+    canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
 // Herní data
 let workers = [];
 let resourceLocations = [];
@@ -205,6 +213,9 @@ function init() {
     setInterval(() => {
         gameTime++;
     }, 1000);
+
+    // Automatické ukládání hry každých 10 sekund
+    setInterval(saveGame, 10000);
 }
 
 // Hlavní smyčka hry
@@ -734,7 +745,7 @@ function saveGame() {
         villageGrowthRate
     };
     localStorage.setItem('villageIdleSave', JSON.stringify(gameData));
-    alert('Hra byla uložena!');
+    console.log('Hra byla automaticky uložena!');
 }
 
 // Funkce pro načtení hry
@@ -771,7 +782,6 @@ function resetGame() {
 }
 
 // Přidání event listenerů na tlačítka
-document.getElementById('saveButton').addEventListener('click', saveGame);
 document.getElementById('resetButton').addEventListener('click', resetGame);
 
 // Inicializace hry

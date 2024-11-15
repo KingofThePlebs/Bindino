@@ -1,20 +1,20 @@
 body {
     margin: 0;
     padding: 0;
-    overflow: auto;
+    overflow: hidden;
     font-family: Arial, sans-serif;
 }
 
 #gameContainer {
     display: flex;
     flex-direction: row;
-    justify-content: center;
-    align-items: center;
+    width: 100vw;
+    height: 100vh;
 }
 
 #gameCanvas {
+    flex: 1;
     background-color: #e0e0e0;
-    margin: auto;
 }
 
 #ui {
@@ -23,7 +23,19 @@ body {
     padding: 10px;
     box-sizing: border-box;
     overflow-y: auto;
-    height: 900px; /* Nastaveno podle výšky plátna */
+}
+
+@media (max-width: 800px) {
+    #gameContainer {
+        flex-direction: column;
+    }
+    #ui {
+        width: 100%;
+        height: auto;
+    }
+    #gameCanvas {
+        height: 50vh;
+    }
 }
 
 #resourceControls, #buildingControls {
@@ -68,18 +80,16 @@ body {
 }
 
 .resource-control .plus-button:hover, .building-control .plus-button:hover {
-    background-color: #146825;
-    box-shadow:#28a745;
+    background-color: #218838;
 }
 
 /* Stylování pro tlačítka '-' */
 .resource-control .minus-button, .building-control .minus-button {
-    background-color: #fc6070; /* Červená */
+    background-color: #dc3545; /* Červená */
 }
 
 .resource-control .minus-button:hover, .building-control .minus-button:hover {
-    background-color: #c71a2b;
-    box-shadow: #dc3545;
+    background-color: #c82333;
 }
 
 .plus-button::after {
@@ -115,7 +125,7 @@ body {
     background-color: #ddd;
 }
 
-#saveButton, #resetButton {
+#resetButton {
     padding: 10px 20px;
     font-size: 16px;
     margin: 5px;
@@ -127,7 +137,7 @@ body {
     transition-duration: 0.4s;
 }
 
-#saveButton:hover, #resetButton:hover {
+#resetButton:hover {
     background-color: white;
     color: black;
     border: 2px solid #008CBA;

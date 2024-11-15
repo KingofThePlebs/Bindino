@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <title>Village Idle</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Přidáno pro responzivitu -->
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div id="gameContainer">
-        <canvas id="gameCanvas" width="1600" height="900"></canvas>
+        <canvas id="gameCanvas"></canvas> <!-- Odebrány pevné rozměry -->
         <div id="ui">
             <div id="resourceControls">
                 <!-- Dynamicky generovaný obsah -->
@@ -29,7 +30,7 @@
                         <!-- Dynamicky generovaný obsah -->
                     </tbody>
                 </table>
-                <button id="saveButton">Uložit hru</button>
+                <!-- Odebráno tlačítko pro ukládání -->
                 <button id="resetButton">Resetovat hru</button>
             </div>
         </div>
