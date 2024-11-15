@@ -19,18 +19,25 @@ body {
     box-sizing: border-box;
 }
 
-#resourceControls {
+#resourceControls, #buildingControls {
     display: flex;
     justify-content: space-around;
     margin-bottom: 10px;
 }
 
-.resource-control {
+.control-section {
     display: flex;
-    align-items: center;
+    flex-wrap: wrap;
+    justify-content: space-around;
 }
 
-.resource-control button {
+.resource-control, .building-control {
+    display: flex;
+    align-items: center;
+    margin: 5px;
+}
+
+.resource-control button, .building-control button {
     margin: 0 5px;
     padding: 5px 10px;
 }
@@ -60,8 +67,8 @@ body {
     background-color: #ddd;
 }
 
-#saveButton {
+#saveButton, #resetButton {
     padding: 10px 20px;
     font-size: 16px;
-    margin-top: 10px;
+    margin: 5px;
 }
