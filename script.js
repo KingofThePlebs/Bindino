@@ -5,8 +5,8 @@ const ctx = canvas.getContext('2d');
 // Herní data
 let workers = [];
 let resourceLocations = [];
-let village = { x: 400, y: 300, size: 30 }; // Zvýšeno z 20 na 30 (1.5x)
-let villageGrowth = 0; // Pro růst vesnice při stavbě budov
+let village = { x: 400, y: 300, size: 30 };
+let villageGrowth = 0;
 let freeWorkers = 5;
 let maxWorkers = 5;
 let resources = {
@@ -18,14 +18,22 @@ let resources = {
     planks: 0,
     stoneChisels: 0,
     ironIngot: 0,
-    goldIngot: 0
+    goldIngot: 0,
+    food: 0,
+    wool: 0,
+    meat: 0,
+    tools: 0
 };
 
 // Nové budovy
 let buildings = [];
 
 // Herní čas
-let gameTime = 0; // v sekundách
+let gameTime = 0;
+
+// Přidané proměnné
+let enableTrading = false;
+let villageGrowthRate = 0;
 
 // Crafting položky
 const craftingItems = [
@@ -35,7 +43,7 @@ const craftingItems = [
         action: () => {
             maxWorkers++;
             freeWorkers++;
-            villageGrowth += 2; // Vesnice se zvětší o 2
+            villageGrowth += 2;
             alert('Postavil jsi dům! Maximální počet workerů se zvýšil.');
         }
     },
@@ -60,7 +68,7 @@ const craftingItems = [
         requirements: { wood: 50, stone: 30 },
         action: () => {
             buildBuilding('sawmill');
-            villageGrowth += 1; // Vesnice se zvětší o 1
+            villageGrowth += 1;
             alert('Postavil jsi pilu! Můžeš nyní vyrábět prkna.');
         }
     },
@@ -81,6 +89,93 @@ const craftingItems = [
             villageGrowth += 1;
             alert('Postavil jsi tavírnu! Můžeš nyní tavit ingoty.');
         }
+    },
+    {
+        name: 'Farma (Farm)',
+        requirements: { planks: 30, stoneChisels: 20 },
+        action: () => {
+            buildBuilding('farm');
+            villageGrowth += 1;
+            alert('Postavil jsi farmu! Můžeš nyní produkovat jídlo.');
+        }
+    },
+    {
+        name: 'Kovárna (Blacksmith)',
+        requirements: { ironIngot: 40, stoneChisels: 20 },
+        action: () => {
+            buildBuilding('blacksmith');
+            villageGrowth += 1;
+            alert('Postavil jsi kovárnu! Můžeš nyní vyrábět pokročilé nástroje.');
+        }
+    },
+    {
+        name: 'Ovčí farma (Sheep Field)',
+        requirements: { planks: 20, stoneChisels: 10 },
+        action: () => {
+            buildBuilding('sheepField');
+            villageGrowth += 1;
+            alert('Postavil jsi ovčí farmu! Můžeš nyní produkovat vlnu.');
+        }
+    },
+    {
+        name: 'Prasečí farma (Pig Field)',
+        requirements: { planks: 20, stoneChisels: 10 },
+        action: () => {
+            buildBuilding('pigField');
+            villageGrowth += 1;
+            alert('Postavil jsi prasečí farmu! Můžeš nyní produkovat maso.');
+        }
+    },
+    {
+        name: 'Taverna (Tavern)',
+        requirements: { planks: 50, stoneChisels: 30 },
+        action: () => {
+            buildBuilding('tavern');
+            villageGrowth += 1;
+            alert('Postavil jsi tavernu! Workeři jsou šťastnější a pracují efektivněji.');
+            workers.forEach(worker => worker.speed += 0.2);
+        }
+    },
+    {
+        name: 'Tržiště (Market)',
+        requirements: { planks: 60, stoneChisels: 40, goldIngot: 10 },
+        action: () => {
+            buildBuilding('market');
+            villageGrowth += 1;
+            alert('Postavil jsi tržiště! Můžeš nyní obchodovat suroviny za zlato.');
+            enableTrading = true;
+            renderTradingControls();
+        }
+    },
+    {
+        name: 'Náměstí (Square)',
+        requirements: { stoneChisels: 50 },
+        action: () => {
+            buildBuilding('square');
+            villageGrowth += 2;
+            alert('Postavil jsi náměstí! Vesnice je atraktivnější a rychleji roste.');
+            villageGrowthRate += 0.1;
+        }
+    },
+    {
+        name: 'Studna (Well)',
+        requirements: { stoneChisels: 30 },
+        action: () => {
+            buildBuilding('well');
+            villageGrowth += 1;
+            alert('Postavil jsi studnu! Vesnice je zdravější.');
+            // Můžeme implementovat bonus později
+        }
+    },
+    {
+        name: 'Škola (School)',
+        requirements: { planks: 80, stoneChisels: 50 },
+        action: () => {
+            buildBuilding('school');
+            villageGrowth += 1;
+            alert('Postavil jsi školu! Workeři jsou efektivnější.');
+            workers.forEach(worker => worker.capacity += 0.5);
+        }
     }
 ];
 
@@ -97,7 +192,11 @@ let resourceAssignments = {
 let buildingAssignments = {
     sawmill: 0,
     stoneWorkshop: 0,
-    furnace: 0
+    furnace: 0,
+    farm: 0,
+    blacksmith: 0,
+    sheepField: 0,
+    pigField: 0
 };
 
 // Inicializace hry
@@ -166,33 +265,60 @@ function update() {
     // Produkce v budovách
     buildings.forEach(building => {
         const buildingType = building.type;
-        const assignedWorkers = buildingAssignments[buildingType];
+        const assignedWorkers = buildingAssignments[buildingType] || 0;
         if (assignedWorkers > 0) {
-            if (buildingType === 'sawmill') {
-                if (resources.wood >= assignedWorkers) {
-                    resources.wood -= assignedWorkers;
-                    resources.planks += assignedWorkers;
-                }
-            } else if (buildingType === 'stoneWorkshop') {
-                if (resources.stone >= assignedWorkers) {
-                    resources.stone -= assignedWorkers;
-                    resources.stoneChisels += assignedWorkers;
-                }
-            } else if (buildingType === 'furnace') {
-                if (resources.coal >= assignedWorkers) {
-                    if (resources.iron >= assignedWorkers) {
-                        resources.iron -= assignedWorkers;
-                        resources.coal -= assignedWorkers;
-                        resources.ironIngot += assignedWorkers;
-                    } else if (resources.gold >= assignedWorkers) {
-                        resources.gold -= assignedWorkers;
-                        resources.coal -= assignedWorkers;
-                        resources.goldIngot += assignedWorkers;
+            switch (buildingType) {
+                case 'sawmill':
+                    if (resources.wood >= assignedWorkers) {
+                        resources.wood -= assignedWorkers;
+                        resources.planks += assignedWorkers;
                     }
-                }
+                    break;
+                case 'stoneWorkshop':
+                    if (resources.stone >= assignedWorkers) {
+                        resources.stone -= assignedWorkers;
+                        resources.stoneChisels += assignedWorkers;
+                    }
+                    break;
+                case 'furnace':
+                    if (resources.coal >= assignedWorkers) {
+                        if (resources.iron >= assignedWorkers) {
+                            resources.iron -= assignedWorkers;
+                            resources.coal -= assignedWorkers;
+                            resources.ironIngot += assignedWorkers;
+                        } else if (resources.gold >= assignedWorkers) {
+                            resources.gold -= assignedWorkers;
+                            resources.coal -= assignedWorkers;
+                            resources.goldIngot += assignedWorkers;
+                        }
+                    }
+                    break;
+                case 'farm':
+                    resources.food += assignedWorkers;
+                    break;
+                case 'blacksmith':
+                    if (resources.ironIngot >= assignedWorkers) {
+                        resources.ironIngot -= assignedWorkers;
+                        resources.tools += assignedWorkers;
+                    }
+                    break;
+                case 'sheepField':
+                    resources.wool += assignedWorkers;
+                    break;
+                case 'pigField':
+                    resources.meat += assignedWorkers;
+                    break;
+                // Budovy s bonusy jsou řešeny v akcích při stavbě
+                default:
+                    break;
             }
         }
     });
+
+    // Aktualizace růstu vesnice (pokud máme náměstí)
+    if (villageGrowthRate > 0) {
+        villageGrowth += villageGrowthRate;
+    }
 }
 
 // Vykreslení hry
@@ -210,7 +336,7 @@ function draw() {
     ctx.closePath();
     ctx.fill();
 
-    // Vykreslení lokací surovin (kruh s tlačítky)
+    // Vykreslení lokací surovin (kruh)
     resourceLocations.forEach(location => {
         ctx.fillStyle = getResourceColor(location.type);
         ctx.beginPath();
@@ -232,7 +358,8 @@ function draw() {
     ctx.fillText(`Volní workeři: ${freeWorkers}/${maxWorkers}`, 10, 20);
     ctx.fillText(`Suroviny: Dřevo ${resources.wood}, Kámen ${resources.stone}, Uhlí ${resources.coal}, Železo ${resources.iron}, Zlato ${resources.gold}`, 10, 40);
     ctx.fillText(`Produkty: Prkna ${resources.planks}, Kamenické nástroje ${resources.stoneChisels}, Železné ingoty ${resources.ironIngot}, Zlaté ingoty ${resources.goldIngot}`, 10, 60);
-    ctx.fillText(`Herní čas: ${formatGameTime(gameTime)}`, 10, 80);
+    ctx.fillText(`Potraviny: Jídlo ${resources.food}, Vlna ${resources.wool}, Maso ${resources.meat}, Nástroje ${resources.tools}`, 10, 80);
+    ctx.fillText(`Herní čas: ${formatGameTime(gameTime)}`, 10, 100);
 
     // Vykreslení budov
     buildings.forEach((building, index) => {
@@ -246,6 +373,33 @@ function draw() {
                 break;
             case 'furnace':
                 buildingColor = 'darkred';
+                break;
+            case 'farm':
+                buildingColor = 'green';
+                break;
+            case 'blacksmith':
+                buildingColor = 'silver';
+                break;
+            case 'sheepField':
+                buildingColor = 'lightgray';
+                break;
+            case 'pigField':
+                buildingColor = 'pink';
+                break;
+            case 'tavern':
+                buildingColor = 'orange';
+                break;
+            case 'market':
+                buildingColor = 'gold';
+                break;
+            case 'square':
+                buildingColor = 'blue';
+                break;
+            case 'well':
+                buildingColor = 'lightblue';
+                break;
+            case 'school':
+                buildingColor = 'purple';
                 break;
             default:
                 buildingColor = 'brown';
@@ -333,6 +487,7 @@ function renderCraftingTable() {
         const actionTd = document.createElement('td');
         const btn = document.createElement('button');
         btn.textContent = 'Craft';
+        btn.className = 'craft-button';
         btn.onclick = () => craftItem(index);
         actionTd.appendChild(btn);
         tr.appendChild(actionTd);
@@ -488,6 +643,13 @@ function removeWorkerFromBuilding(buildingType) {
     }
 }
 
+// Funkce pro vykreslení ovládacích prvků pro obchodování
+function renderTradingControls() {
+    if (!enableTrading) return;
+    // Implementace obchodování může být přidána zde
+    // Například přidání tlačítek pro prodej surovin za zlato
+}
+
 // Funkce pro ukládání hry
 function saveGame() {
     const gameData = {
@@ -499,7 +661,9 @@ function saveGame() {
         gameTime,
         resourceAssignments,
         buildingAssignments,
-        villageGrowth
+        villageGrowth,
+        enableTrading,
+        villageGrowthRate
     };
     localStorage.setItem('villageIdleSave', JSON.stringify(gameData));
     alert('Hra byla uložena!');
@@ -519,6 +683,13 @@ function loadGame() {
         resourceAssignments = { ...gameData.resourceAssignments };
         buildingAssignments = { ...gameData.buildingAssignments };
         villageGrowth = gameData.villageGrowth || 0;
+        enableTrading = gameData.enableTrading || false;
+        villageGrowthRate = gameData.villageGrowthRate || 0;
+
+        // Pokud je povoleno obchodování, znovu vykresli ovládací prvky
+        if (enableTrading) {
+            renderTradingControls();
+        }
     }
 }
 
