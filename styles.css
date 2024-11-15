@@ -8,13 +8,12 @@ body {
 #gameContainer {
     display: flex;
     flex-direction: row;
-    width: 100vw;
-    height: 100vh;
+    height: 100vh; /* Výška celé obrazovky */
 }
 
 #gameCanvas {
-    flex: 1;
     background-color: #e0e0e0;
+    flex: 1; /* Canvas zabere zbylý prostor */
 }
 
 #ui {
@@ -23,19 +22,6 @@ body {
     padding: 10px;
     box-sizing: border-box;
     overflow-y: auto;
-}
-
-@media (max-width: 800px) {
-    #gameContainer {
-        flex-direction: column;
-    }
-    #ui {
-        width: 100%;
-        height: auto;
-    }
-    #gameCanvas {
-        height: 50vh;
-    }
 }
 
 #resourceControls, #buildingControls {
@@ -170,4 +156,21 @@ body {
 
 #ui::-webkit-scrollbar-thumb:hover {
     background-color: #555;
+}
+
+/* Responzivní stylování */
+@media (max-width: 768px) {
+    #gameContainer {
+        flex-direction: column;
+    }
+
+    #ui {
+        width: 100%;
+        height: auto;
+    }
+
+    #gameCanvas {
+        width: 100%;
+        height: auto;
+    }
 }

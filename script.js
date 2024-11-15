@@ -2,18 +2,68 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// Nastavení velikosti plátna podle velikosti okna
+// Responzivní nastavení velikosti canvasu
 function resizeCanvas() {
-    canvas.width = window.innerWidth - (window.innerWidth > 800 ? 300 : 0); // Odečte šířku UI na PC
-    canvas.height = window.innerHeight;
+    // Zjistíme, jestli je zařízení mobilní
+    const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+
+    if (isMobile) {
+        // Na mobilních zařízeních nastavíme menší rozměry
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight * 0.6; // Můžete přizpůsobit podle potřeby
+    } else {
+        // Na PC nastavíme canvas tak, aby zabíral celou výšku okna
+        canvas.width = window.innerWidth - 300; // Odečteme šířku UI
+        canvas.height = window.innerHeight;
+    }
+
+    // Aktualizujeme pozice vesnice a lokací surovin
+    updatePositions();
 }
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
+
+// Funkce pro aktualizaci pozic vesnice a surovin
+function updatePositions() {
+    village.x = canvas.width / 2;
+    village.y = canvas.height / 2;
+
+    resourceLocations = [
+        { x: canvas.width * 0.25, y: canvas.height * 0.25, type: 'wood', name: 'Les' },
+        { x: canvas.width * 0.75, y: canvas.height * 0.25, type: 'stone', name: 'Kamenolom' },
+        { x: canvas.width * 0.25, y: canvas.height * 0.75, type: 'coal', name: 'Uhelný důl' },
+        { x: canvas.width * 0.75, y: canvas.height * 0.75, type: 'iron', name: 'Železný důl' },
+        { x: canvas.width / 2, y: canvas.height * 0.85, type: 'gold', name: 'Zlatý důl' }
+    ];
+
+    // Aktualizace pozic workerů
+    workers.forEach(worker => {
+        worker.x = village.x;
+        worker.y = village.y;
+        if (worker.workerType === 'resource') {
+            worker.target = getLocationByType(worker.resourceType) || { x: village.x, y: village.y };
+        } else if (worker.workerType === 'production') {
+            let building = getBuildingByType(worker.buildingType);
+            if (building) {
+                worker.target = building.position;
+            } else {
+                worker.target = { x: village.x, y: village.y };
+            }
+        }
+    });
+
+    // Reset pozic budov
+    buildings.forEach(building => {
+        building.position = null;
+    });
+}
+
+// Přidáme event listener pro změnu velikosti okna
+window.addEventListener('resize', () => {
+    resizeCanvas();
+});
 
 // Herní data
 let workers = [];
-let resourceLocations = [];
-let village = { x: canvas.width / 2, y: canvas.height / 2, size: 30 };
+let village = { x: 0, y: 0, size: 30 };
 let villageGrowth = 0;
 let freeWorkers = 5;
 let maxWorkers = 5;
@@ -32,8 +82,9 @@ let resources = {
     meat: 0
 };
 
-// Aktualizovaný seznam budov (odstraněny Tavern, Square, Tools)
+// Aktualizovaný seznam budov
 let buildings = [];
+let resourceLocations = [];
 
 // Herní čas
 let gameTime = 0;
@@ -42,7 +93,7 @@ let gameTime = 0;
 let enableTrading = false;
 let villageGrowthRate = 0;
 
-// Crafting položky (odstraněny Tavern, Square, Tools)
+// Crafting položky
 const craftingItems = [
     {
         name: 'Dům',
@@ -108,7 +159,7 @@ const craftingItems = [
         action: () => {
             buildBuilding('blacksmith');
             villageGrowth += 1;
-            alert('Postavil jsi kovárnu! Můžeš nyní vyrábět pokročilé nástroje.');
+            alert('Postavil jsi kovárnu! Můžeš nyní vyrábět pokročilé produkty.');
             renderBuildingControls();
         }
     },
@@ -187,16 +238,14 @@ let buildingMaxWorkers = {
 
 // Inicializace hry
 function init() {
+    resizeCanvas();
+
     // Načtení uložené hry, pokud existuje
     loadGame();
 
-    // Vytvoření lokací surovin, pokud nejsou načteny
+    // Pokud nejsou načteny resourceLocations (při nové hře)
     if (resourceLocations.length === 0) {
-        resourceLocations.push({ x: canvas.width * 0.25, y: canvas.height * 0.25, type: 'wood', name: 'Les' });
-        resourceLocations.push({ x: canvas.width * 0.75, y: canvas.height * 0.25, type: 'stone', name: 'Kamenolom' });
-        resourceLocations.push({ x: canvas.width * 0.25, y: canvas.height * 0.75, type: 'coal', name: 'Uhelný důl' });
-        resourceLocations.push({ x: canvas.width * 0.75, y: canvas.height * 0.75, type: 'iron', name: 'Železný důl' });
-        resourceLocations.push({ x: canvas.width / 2, y: canvas.height * 0.85, type: 'gold', name: 'Zlatý důl' });
+        updatePositions();
     }
 
     // Vykreslení crafting tabulky
@@ -209,13 +258,16 @@ function init() {
     // Hlavní smyčka
     setInterval(gameLoop, 50);
 
+    // Automatické ukládání hry každých 10 sekund
+    setInterval(() => {
+        saveGame();
+        console.log('Hra byla automaticky uložena.');
+    }, 10000);
+
     // Aktualizace herního času každou sekundu
     setInterval(() => {
         gameTime++;
     }, 1000);
-
-    // Automatické ukládání hry každých 10 sekund
-    setInterval(saveGame, 10000);
 }
 
 // Hlavní smyčka hry
@@ -725,10 +777,9 @@ function removeWorkerFromBuilding(buildingType) {
 function renderTradingControls() {
     if (!enableTrading) return;
     // Implementace obchodování může být přidána zde
-    // Například přidání tlačítek pro prodej surovin za zlato
 }
 
-// Funkce pro ukládání hry
+// Funkce pro ukládání hry (automatické)
 function saveGame() {
     const gameData = {
         workers,
@@ -745,7 +796,6 @@ function saveGame() {
         villageGrowthRate
     };
     localStorage.setItem('villageIdleSave', JSON.stringify(gameData));
-    console.log('Hra byla automaticky uložena!');
 }
 
 // Funkce pro načtení hry
