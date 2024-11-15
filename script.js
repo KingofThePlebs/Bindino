@@ -5,7 +5,8 @@ const ctx = canvas.getContext('2d');
 // Herní data
 let workers = [];
 let resourceLocations = [];
-let village = { x: 400, y: 300 };
+let village = { x: 400, y: 300, size: 30 }; // Zvýšeno z 20 na 30 (1.5x)
+let villageGrowth = 0; // Pro růst vesnice při stavbě budov
 let freeWorkers = 5;
 let maxWorkers = 5;
 let resources = {
@@ -34,6 +35,7 @@ const craftingItems = [
         action: () => {
             maxWorkers++;
             freeWorkers++;
+            villageGrowth += 2; // Vesnice se zvětší o 2
             alert('Postavil jsi dům! Maximální počet workerů se zvýšil.');
         }
     },
@@ -58,6 +60,7 @@ const craftingItems = [
         requirements: { wood: 50, stone: 30 },
         action: () => {
             buildBuilding('sawmill');
+            villageGrowth += 1; // Vesnice se zvětší o 1
             alert('Postavil jsi pilu! Můžeš nyní vyrábět prkna.');
         }
     },
@@ -66,6 +69,7 @@ const craftingItems = [
         requirements: { wood: 40, stone: 40 },
         action: () => {
             buildBuilding('stoneWorkshop');
+            villageGrowth += 1;
             alert('Postavil jsi kamenictví! Můžeš nyní vyrábět kamenické nástroje.');
         }
     },
@@ -74,10 +78,20 @@ const craftingItems = [
         requirements: { stone: 60, iron: 20 },
         action: () => {
             buildBuilding('furnace');
+            villageGrowth += 1;
             alert('Postavil jsi tavírnu! Můžeš nyní tavit ingoty.');
         }
     }
 ];
+
+// Workers assigned to resource locations
+let resourceAssignments = {
+    wood: 0,
+    stone: 0,
+    coal: 0,
+    iron: 0,
+    gold: 0
+};
 
 // Inicializace hry
 function init() {
@@ -95,6 +109,9 @@ function init() {
 
     // Vykreslení crafting tabulky
     renderCraftingTable();
+
+    // Vykreslení ovládacích prvků pro suroviny
+    renderResourceControls();
 
     // Hlavní smyčka
     setInterval(gameLoop, 50);
@@ -173,19 +190,22 @@ function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Vykreslení vesnice (kosočtverec)
+    let villageSize = village.size + villageGrowth;
     ctx.fillStyle = 'brown';
     ctx.beginPath();
-    ctx.moveTo(village.x, village.y - 20);
-    ctx.lineTo(village.x + 20, village.y);
-    ctx.lineTo(village.x, village.y + 20);
-    ctx.lineTo(village.x - 20, village.y);
+    ctx.moveTo(village.x, village.y - villageSize);
+    ctx.lineTo(village.x + villageSize, village.y);
+    ctx.lineTo(village.x, village.y + villageSize);
+    ctx.lineTo(village.x - villageSize, village.y);
     ctx.closePath();
     ctx.fill();
 
-    // Vykreslení lokací surovin (čtverec)
+    // Vykreslení lokací surovin (kruh s tlačítky)
     resourceLocations.forEach(location => {
         ctx.fillStyle = getResourceColor(location.type);
-        ctx.fillRect(location.x - 15, location.y - 15, 30, 30);
+        ctx.beginPath();
+        ctx.arc(location.x, location.y, 20, 0, Math.PI * 2);
+        ctx.fill();
     });
 
     // Vykreslení workerů (kruh)
@@ -221,8 +241,9 @@ function draw() {
                 buildingColor = 'brown';
         }
 
-        let bx = village.x + (index + 1) * 60;
-        let by = village.y;
+        let angle = (index / buildings.length) * Math.PI * 2;
+        let bx = village.x + (villageSize + 30) * Math.cos(angle);
+        let by = village.y + (villageSize + 30) * Math.sin(angle);
 
         ctx.fillStyle = buildingColor;
         ctx.beginPath();
@@ -334,53 +355,75 @@ function buildBuilding(type) {
     buildings.push({ type: type, workers: 0 });
 }
 
-// Přidělení workerů do budov
-function assignWorkerToBuilding(buildingType) {
-    const building = buildings.find(b => b.type === buildingType);
-    if (building && freeWorkers > 0) {
-        building.workers++;
+// Funkce pro vykreslení ovládacích prvků pro suroviny
+function renderResourceControls() {
+    const resourceControlsDiv = document.getElementById('resourceControls');
+    resourceControlsDiv.innerHTML = '';
+    resourceLocations.forEach(location => {
+        const div = document.createElement('div');
+        div.className = 'resource-control';
+
+        const label = document.createElement('span');
+        label.textContent = `${location.type} (Workeři: ${resourceAssignments[location.type]})`;
+
+        const minusBtn = document.createElement('button');
+        minusBtn.textContent = '-';
+        minusBtn.onclick = () => removeWorkerFromResource(location.type);
+
+        const plusBtn = document.createElement('button');
+        plusBtn.textContent = '+';
+        plusBtn.onclick = () => addWorkerToResource(location.type);
+
+        div.appendChild(label);
+        div.appendChild(minusBtn);
+        div.appendChild(plusBtn);
+
+        resourceControlsDiv.appendChild(div);
+    });
+}
+
+// Funkce pro přidání a odebrání workerů z lokací surovin
+function addWorkerToResource(resourceType) {
+    if (freeWorkers > 0) {
+        let worker = {
+            x: village.x,
+            y: village.y,
+            target: getLocationByType(resourceType),
+            state: 'going',
+            speed: 1.5,
+            resourceType: resourceType,
+            capacity: 1
+        };
+        workers.push(worker);
+        resourceAssignments[resourceType]++;
         freeWorkers--;
+        renderResourceControls();
     } else {
-        alert('Nemáš volné workery nebo budova neexistuje!');
+        alert('Nemáš volné workery!');
+    }
+}
+
+function removeWorkerFromResource(resourceType) {
+    if (resourceAssignments[resourceType] > 0) {
+        // Najdi workera, který těží danou surovinu
+        const workerIndex = workers.findIndex(w => w.resourceType === resourceType && w.state !== 'removing');
+        if (workerIndex !== -1) {
+            workers.splice(workerIndex, 1);
+            resourceAssignments[resourceType]--;
+            freeWorkers++;
+            renderResourceControls();
+        }
+    } else {
+        alert('V této lokaci nemáš žádné workery!');
     }
 }
 
 // Přidání event listenerů
+/* Už nepotřebujeme tento listener, protože přidáváme workery přes tlačítka
 canvas.addEventListener('click', function(event) {
-    let rect = canvas.getBoundingClientRect();
-    let mouseX = event.clientX - rect.left;
-    let mouseY = event.clientY - rect.top;
-
-    // Přidělení workerů do lokací surovin
-    resourceLocations.forEach(location => {
-        if (mouseX >= location.x - 15 && mouseX <= location.x + 15 && mouseY >= location.y - 15 && mouseY <= location.y + 15) {
-            if (freeWorkers > 0) {
-                let worker = {
-                    x: village.x,
-                    y: village.y,
-                    target: { x: location.x, y: location.y },
-                    state: 'going',
-                    speed: 1.5,
-                    resourceType: location.type,
-                    capacity: 1
-                };
-                workers.push(worker);
-                freeWorkers--;
-            } else {
-                alert('Nemáš volné workery!');
-            }
-        }
-    });
-
-    // Přidělení workerů do budov
-    buildings.forEach((building, index) => {
-        let bx = village.x + (index + 1) * 60;
-        let by = village.y;
-        if (mouseX >= bx - 15 && mouseX <= bx + 15 && mouseY >= by - 15 && mouseY <= by + 15) {
-            assignWorkerToBuilding(building.type);
-        }
-    });
+    // ...
 });
+*/
 
 // Funkce pro ukládání hry
 function saveGame() {
@@ -390,7 +433,9 @@ function saveGame() {
         maxWorkers,
         resources,
         buildings,
-        gameTime
+        gameTime,
+        resourceAssignments,
+        villageGrowth
     };
     localStorage.setItem('villageIdleSave', JSON.stringify(gameData));
     alert('Hra byla uložena!');
@@ -407,6 +452,8 @@ function loadGame() {
         resources = { ...gameData.resources };
         buildings = gameData.buildings.map(building => ({ ...building }));
         gameTime = gameData.gameTime || 0;
+        resourceAssignments = { ...gameData.resourceAssignments };
+        villageGrowth = gameData.villageGrowth || 0;
     }
 }
 
