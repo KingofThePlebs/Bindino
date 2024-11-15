@@ -6,6 +6,10 @@ const ctx = canvas.getContext('2d');
 let scaleFactor = 1; // Výchozí měřítko
 let devicePixelRatio = window.devicePixelRatio || 1; // Poměr pixelů zařízení
 
+// Buffery pro workery
+let workerCapacityBuff = 0;
+let workerSpeedBuff = 0;
+
 // Responzivní nastavení velikosti canvasu
 function resizeCanvas() {
     // Zjistíme, jestli je zařízení mobilní
@@ -114,11 +118,20 @@ let gameTime = 0;
 let enableTrading = false;
 let villageGrowthRate = 0;
 
+// Buffery pro neprodukční budovy
+let nonProductionBuildingLevels = {
+    well: 0,
+    school: 0,
+    tavern: 0
+};
+
 // Crafting položky
 const craftingItems = [
     {
         name: 'Dům',
+        description: 'Zvyšuje maximální počet workerů o 1',
         requirements: {},
+        purchaseCount: 0,
         action: () => {
             maxWorkers++;
             freeWorkers++;
@@ -128,15 +141,19 @@ const craftingItems = [
     },
     {
         name: 'Vozík',
+        description: 'Zvyšuje nosnost všech workerů o 1',
         requirements: {},
+        purchaseCount: 0,
         action: () => {
-            workers.forEach(worker => worker.capacity += 1);
+            workerCapacityBuff += 1;
             alert('Vyrobil jsi vozík! Workeři unesou více surovin.');
         }
     },
     {
         name: 'Pila (Sawmill)',
+        description: 'Umožňuje výrobu prken',
         requirements: {},
+        purchaseCount: 0,
         action: () => {
             buildBuilding('sawmill');
             villageGrowth += 1;
@@ -146,7 +163,9 @@ const craftingItems = [
     },
     {
         name: 'Kamenictví (Stone Workshop)',
+        description: 'Umožňuje výrobu kamenických nástrojů',
         requirements: {},
+        purchaseCount: 0,
         action: () => {
             buildBuilding('stoneWorkshop');
             villageGrowth += 1;
@@ -156,7 +175,9 @@ const craftingItems = [
     },
     {
         name: 'Tavírna (Furnace)',
+        description: 'Umožňuje tavení kovů',
         requirements: {},
+        purchaseCount: 0,
         action: () => {
             buildBuilding('furnace');
             villageGrowth += 1;
@@ -166,7 +187,9 @@ const craftingItems = [
     },
     {
         name: 'Farma (Farm)',
+        description: 'Produkuje jídlo',
         requirements: {},
+        purchaseCount: 0,
         action: () => {
             buildBuilding('farm');
             villageGrowth += 1;
@@ -176,7 +199,9 @@ const craftingItems = [
     },
     {
         name: 'Kovárna (Blacksmith)',
+        description: 'Umožňuje výrobu pokročilých produktů',
         requirements: {},
+        purchaseCount: 0,
         action: () => {
             buildBuilding('blacksmith');
             villageGrowth += 1;
@@ -186,7 +211,9 @@ const craftingItems = [
     },
     {
         name: 'Ovčí farma (Sheep Field)',
+        description: 'Produkuje vlnu',
         requirements: {},
+        purchaseCount: 0,
         action: () => {
             buildBuilding('sheepField');
             villageGrowth += 1;
@@ -196,7 +223,9 @@ const craftingItems = [
     },
     {
         name: 'Prasečí farma (Pig Field)',
+        description: 'Produkuje maso',
         requirements: {},
+        purchaseCount: 0,
         action: () => {
             buildBuilding('pigField');
             villageGrowth += 1;
@@ -206,22 +235,38 @@ const craftingItems = [
     },
     {
         name: 'Studna (Well)',
+        description: 'Zvyšuje rychlost workerů o 5%',
         requirements: {},
+        purchaseCount: 0,
         action: () => {
-            buildBuilding('well');
+            upgradeNonProductionBuilding('well');
+            workerSpeedBuff += 0.05;
             villageGrowth += 1;
             alert('Postavil jsi studnu! Vesnice je zdravější.');
-            // Můžeme implementovat bonus později
         }
     },
     {
         name: 'Škola (School)',
+        description: 'Zvyšuje rychlost workerů o 5%',
         requirements: {},
+        purchaseCount: 0,
         action: () => {
-            buildBuilding('school');
+            upgradeNonProductionBuilding('school');
+            workerSpeedBuff += 0.05;
             villageGrowth += 1;
             alert('Postavil jsi školu! Workeři jsou efektivnější.');
-            workers.forEach(worker => worker.capacity += 0.5);
+        }
+    },
+    {
+        name: 'Taverna (Tavern)',
+        description: 'Zvyšuje rychlost workerů o 5%',
+        requirements: {},
+        purchaseCount: 0,
+        action: () => {
+            upgradeNonProductionBuilding('tavern');
+            workerSpeedBuff += 0.05;
+            villageGrowth += 1;
+            alert('Postavil jsi tavernu! Workeři jsou rychlejší.');
         }
     }
 ];
@@ -317,13 +362,14 @@ function update() {
             moveTowards(worker, worker.target);
             if (distance(worker, worker.target) < 5 * scaleFactor) {
                 // Přidání surovin nebo produktů
+                let actualCapacity = worker.baseCapacity + workerCapacityBuff;
                 if (worker.workerType === 'resource') {
-                    resources[worker.resourceType] += worker.capacity;
+                    resources[worker.resourceType] += actualCapacity;
                 } else if (worker.workerType === 'production') {
                     // Přidání produktu podle typu budovy
                     let product = getProductByBuilding(worker.buildingType);
                     if (product) {
-                        resources[product] += worker.capacity;
+                        resources[product] += actualCapacity;
                     }
                 }
                 // Nastavení cíle zpět na lokaci nebo budovu
@@ -379,7 +425,7 @@ function draw() {
 
     // Vykreslení budov
     const productionBuildings = ['sawmill', 'stoneWorkshop', 'furnace', 'farm', 'blacksmith', 'sheepField', 'pigField'];
-    const nonProductionBuildings = ['well', 'school'];
+    const nonProductionBuildings = ['well', 'school', 'tavern'];
 
     // Vykreslení produkčních budov (pouze jedna od každého typu)
     let productionIndex = 0;
@@ -421,9 +467,10 @@ function draw() {
 
     // Vykreslení neprodukčních budov (každá budova)
     let nonProductionIndex = 0;
-    buildings.forEach((building, index) => {
-        if (nonProductionBuildings.includes(building.type)) {
-            let buildingColor = getBuildingColor(building.type);
+    nonProductionBuildings.forEach(type => {
+        const building = buildings.find(b => b.type === type);
+        if (building) {
+            let buildingColor = getBuildingColor(type);
             let angle = (nonProductionIndex / nonProductionBuildings.length) * Math.PI * 2;
             let distanceFromVillage = (villageSize + 100 * scaleFactor);
             let bx = village.x + distanceFromVillage * Math.cos(angle);
@@ -440,10 +487,10 @@ function draw() {
             ctx.closePath();
             ctx.fill();
 
-            // Zobrazení typu budovy
+            // Zobrazení typu budovy s úrovní
             ctx.fillStyle = 'black';
             ctx.font = `${14 * scaleFactor}px Arial`;
-            ctx.fillText(`${building.type}`, bx - 25 * scaleFactor, by + 35 * scaleFactor);
+            ctx.fillText(`${type} Lv.${nonProductionBuildingLevels[type]}`, bx - 25 * scaleFactor, by + 35 * scaleFactor);
 
             nonProductionIndex++;
         }
@@ -473,8 +520,9 @@ function moveTowards(obj, target) {
     let dy = target.y - obj.y;
     let dist = Math.sqrt(dx * dx + dy * dy);
     if (dist > 0) {
-        obj.x += (dx / dist) * obj.speed * scaleFactor;
-        obj.y += (dy / dist) * obj.speed * scaleFactor;
+        let actualSpeed = obj.baseSpeed * (1 + workerSpeedBuff) * scaleFactor;
+        obj.x += (dx / dist) * actualSpeed;
+        obj.y += (dy / dist) * actualSpeed;
     }
 }
 
@@ -529,6 +577,8 @@ function getBuildingColor(type) {
             return 'lightblue';
         case 'school':
             return 'purple';
+        case 'tavern':
+            return 'orange';
         default:
             return 'brown';
     }
@@ -595,6 +645,7 @@ function formatGameTime(seconds) {
 function renderCraftingTable() {
     const craftingBody = document.getElementById('craftingBody');
     craftingBody.innerHTML = '';
+
     craftingItems.forEach((item, index) => {
         const tr = document.createElement('tr');
 
@@ -609,6 +660,14 @@ function renderCraftingTable() {
             reqTd.textContent = Object.entries(item.requirements).map(([res, qty]) => `${res}: ${qty}`).join(', ');
         }
         tr.appendChild(reqTd);
+
+        const purchasedTd = document.createElement('td');
+        purchasedTd.textContent = item.purchaseCount;
+        tr.appendChild(purchasedTd);
+
+        const descTd = document.createElement('td');
+        descTd.textContent = item.description;
+        tr.appendChild(descTd);
 
         const actionTd = document.createElement('td');
         const btn = document.createElement('button');
@@ -635,9 +694,12 @@ function craftItem(index) {
         for (let res in item.requirements) {
             resources[res] -= item.requirements[res];
         }
+        item.purchaseCount++;
         item.action();
         // Aktualizace ovládacích prvků budov
         renderBuildingControls();
+        // Aktualizace crafting table
+        renderCraftingTable();
     } else {
         alert('Nemáš dostatek surovin!');
     }
@@ -654,6 +716,16 @@ function buildBuilding(type) {
         }
     } else {
         buildings.push({ type: type });
+    }
+}
+
+// Funkce pro vylepšení neprodukční budovy
+function upgradeNonProductionBuilding(type) {
+    if (!nonProductionBuildingLevels[type]) {
+        nonProductionBuildingLevels[type] = 1;
+        buildings.push({ type: type });
+    } else {
+        nonProductionBuildingLevels[type]++;
     }
 }
 
@@ -694,6 +766,13 @@ function renderBuildingControls() {
 
     buildingTypes.forEach(type => {
         const count = buildings.filter(b => b.type === type).length;
+
+        // Pokud je budova neprodukční, přeskočíme vykreslení ovládacích prvků
+        const nonProductionBuildings = ['well', 'school', 'tavern'];
+        if (nonProductionBuildings.includes(type)) {
+            return;
+        }
+
         const div = document.createElement('div');
         div.className = 'building-control';
 
@@ -725,9 +804,9 @@ function addWorkerToResource(resourceType) {
             y: village.y,
             target: getLocationByType(resourceType),
             state: 'going',
-            speed: 1.5,
+            baseSpeed: 1.5,
             resourceType: resourceType,
-            capacity: 1,
+            baseCapacity: 1,
             workerType: 'resource'
         };
         workers.push(worker);
@@ -767,9 +846,9 @@ function addWorkerToBuilding(buildingType) {
                 y: village.y,
                 target: building.position,
                 state: 'going',
-                speed: 1.5,
+                baseSpeed: 1.5,
                 buildingType: buildingType,
-                capacity: 1,
+                baseCapacity: 1,
                 workerType: 'production'
             };
             workers.push(worker);
@@ -815,7 +894,11 @@ function saveGame() {
         buildingMaxWorkers,
         villageGrowth,
         enableTrading,
-        villageGrowthRate
+        villageGrowthRate,
+        workerCapacityBuff,
+        workerSpeedBuff,
+        nonProductionBuildingLevels,
+        craftingItemsPurchaseCounts: craftingItems.map(item => item.purchaseCount)
     };
     localStorage.setItem('villageIdleSave', JSON.stringify(gameData));
 }
@@ -837,6 +920,14 @@ function loadGame() {
         villageGrowth = gameData.villageGrowth || 0;
         enableTrading = gameData.enableTrading || false;
         villageGrowthRate = gameData.villageGrowthRate || 0;
+        workerCapacityBuff = gameData.workerCapacityBuff || 0;
+        workerSpeedBuff = gameData.workerSpeedBuff || 0;
+        nonProductionBuildingLevels = { ...gameData.nonProductionBuildingLevels };
+        if (gameData.craftingItemsPurchaseCounts) {
+            craftingItems.forEach((item, index) => {
+                item.purchaseCount = gameData.craftingItemsPurchaseCounts[index] || 0;
+            });
+        }
 
         // Pokud je povoleno obchodování, znovu vykresli ovládací prvky
         if (enableTrading) {
