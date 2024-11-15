@@ -23,6 +23,7 @@ body {
     display: flex;
     justify-content: space-around;
     margin-bottom: 10px;
+    flex-wrap: wrap;
 }
 
 .control-section {
@@ -40,6 +41,25 @@ body {
 .resource-control button, .building-control button {
     margin: 0 5px;
     padding: 5px 10px;
+    cursor: pointer;
+}
+
+.resource-control button, .building-control button, #saveButton, #resetButton, .craft-button {
+    background-color: #4CAF50; /* Zelená */
+    border: none;
+    color: white;
+    padding: 10px 16px;
+    text-align: center;
+    text-decoration: none;
+    font-size: 14px;
+    border-radius: 4px;
+    transition-duration: 0.4s;
+}
+
+.resource-control button:hover, .building-control button:hover, #saveButton:hover, #resetButton:hover, .craft-button:hover {
+    background-color: white;
+    color: black;
+    border: 2px solid #4CAF50;
 }
 
 #craftingTable {
@@ -71,4 +91,29 @@ body {
     padding: 10px 20px;
     font-size: 16px;
     margin: 5px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+#saveButton, #resetButton {
+    background-color: #008CBA; /* Modrá */
+    color: white;
+    border: none;
+}
+
+#saveButton:hover, #resetButton:hover {
+    background-color: white;
+    color: black;
+    border: 2px solid #008CBA;
+}
+
+.craft-button {
+    background-color: #f0ad4e; /* Oranžová */
+    color: white;
+}
+
+.craft-button:hover {
+    background-color: white;
+    color: black;
+    border: 2px solid #f0ad4e;
 }
