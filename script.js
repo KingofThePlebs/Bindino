@@ -2,6 +2,9 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+// Globální proměnné
+let scaleFactor = 1; // Výchozí měřítko
+
 // Responzivní nastavení velikosti canvasu
 function resizeCanvas() {
     // Zjistíme, jestli je zařízení mobilní
@@ -11,10 +14,12 @@ function resizeCanvas() {
         // Na mobilních zařízeních nastavíme menší rozměry
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight * 0.6; // Můžete přizpůsobit podle potřeby
+        scaleFactor = 0.33; // Zmenšíme objekty na třetinu velikosti
     } else {
         // Na PC nastavíme canvas tak, aby zabíral celou výšku okna
         canvas.width = window.innerWidth - 300; // Odečteme šířku UI
         canvas.height = window.innerHeight;
+        scaleFactor = 1; // Plná velikost
     }
 
     // Aktualizujeme pozice vesnice a lokací surovin
@@ -282,7 +287,7 @@ function update() {
     workers.forEach(worker => {
         if (worker.state === 'going') {
             moveTowards(worker, worker.target);
-            if (distance(worker, worker.target) < 5) {
+            if (distance(worker, worker.target) < 5 * scaleFactor) {
                 worker.state = 'collecting';
                 worker.timer = 50; // Čas sběru
             }
@@ -294,7 +299,7 @@ function update() {
             }
         } else if (worker.state === 'returning') {
             moveTowards(worker, worker.target);
-            if (distance(worker, worker.target) < 5) {
+            if (distance(worker, worker.target) < 5 * scaleFactor) {
                 // Přidání surovin nebo produktů
                 if (worker.workerType === 'resource') {
                     resources[worker.resourceType] += worker.capacity;
@@ -330,7 +335,7 @@ function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Vykreslení vesnice (kosočtverec)
-    let villageSize = village.size + villageGrowth;
+    let villageSize = (village.size + villageGrowth) * scaleFactor;
     ctx.fillStyle = 'brown';
     ctx.beginPath();
     ctx.moveTo(village.x, village.y - villageSize);
@@ -344,13 +349,13 @@ function draw() {
     resourceLocations.forEach(location => {
         ctx.fillStyle = getResourceColor(location.type);
         ctx.beginPath();
-        ctx.arc(location.x, location.y, 20, 0, Math.PI * 2);
+        ctx.arc(location.x, location.y, 20 * scaleFactor, 0, Math.PI * 2);
         ctx.fill();
 
         // Zobrazení názvu lokace
         ctx.fillStyle = 'black';
-        ctx.font = '14px Arial';
-        ctx.fillText(location.name, location.x - 30, location.y - 25);
+        ctx.font = `${14 * scaleFactor}px Arial`;
+        ctx.fillText(location.name, location.x - 30 * scaleFactor, location.y - 25 * scaleFactor);
     });
 
     // Vykreslení budov
@@ -364,23 +369,25 @@ function draw() {
         if (count > 0) {
             let buildingColor = getBuildingColor(type);
             let angle = (productionIndex / productionBuildings.length) * Math.PI * 2;
-            let bx = village.x + (villageSize + 200) * Math.cos(angle);
-            let by = village.y + (villageSize + 200) * Math.sin(angle);
+            let distanceFromVillage = (villageSize + 200 * scaleFactor);
+            let bx = village.x + distanceFromVillage * Math.cos(angle);
+            let by = village.y + distanceFromVillage * Math.sin(angle);
 
             let building = { type: type, position: { x: bx, y: by } };
 
             ctx.fillStyle = buildingColor;
             ctx.beginPath();
-            ctx.moveTo(bx, by - 15);
-            ctx.lineTo(bx + 15, by);
-            ctx.lineTo(bx, by + 15);
-            ctx.lineTo(bx - 15, by);
+            ctx.moveTo(bx, by - 15 * scaleFactor);
+            ctx.lineTo(bx + 15 * scaleFactor, by);
+            ctx.lineTo(bx, by + 15 * scaleFactor);
+            ctx.lineTo(bx - 15 * scaleFactor, by);
             ctx.closePath();
             ctx.fill();
 
             // Zobrazení typu budovy
             ctx.fillStyle = 'black';
-            ctx.fillText(`${type}`, bx - 25, by + 35);
+            ctx.font = `${14 * scaleFactor}px Arial`;
+            ctx.fillText(`${type}`, bx - 25 * scaleFactor, by + 35 * scaleFactor);
 
             // Aktualizace pozice budovy v seznamu budov
             buildings.forEach(b => {
@@ -399,23 +406,25 @@ function draw() {
         if (nonProductionBuildings.includes(building.type)) {
             let buildingColor = getBuildingColor(building.type);
             let angle = (nonProductionIndex / nonProductionBuildings.length) * Math.PI * 2;
-            let bx = village.x + (villageSize + 100) * Math.cos(angle);
-            let by = village.y + (villageSize + 100) * Math.sin(angle);
+            let distanceFromVillage = (villageSize + 100 * scaleFactor);
+            let bx = village.x + distanceFromVillage * Math.cos(angle);
+            let by = village.y + distanceFromVillage * Math.sin(angle);
 
             building.position = { x: bx, y: by };
 
             ctx.fillStyle = buildingColor;
             ctx.beginPath();
-            ctx.moveTo(bx, by - 15);
-            ctx.lineTo(bx + 15, by);
-            ctx.lineTo(bx, by + 15);
-            ctx.lineTo(bx - 15, by);
+            ctx.moveTo(bx, by - 15 * scaleFactor);
+            ctx.lineTo(bx + 15 * scaleFactor, by);
+            ctx.lineTo(bx, by + 15 * scaleFactor);
+            ctx.lineTo(bx - 15 * scaleFactor, by);
             ctx.closePath();
             ctx.fill();
 
             // Zobrazení typu budovy
             ctx.fillStyle = 'black';
-            ctx.fillText(`${building.type}`, bx - 25, by + 35);
+            ctx.font = `${14 * scaleFactor}px Arial`;
+            ctx.fillText(`${building.type}`, bx - 25 * scaleFactor, by + 35 * scaleFactor);
 
             nonProductionIndex++;
         }
@@ -425,7 +434,7 @@ function draw() {
     workers.forEach(worker => {
         ctx.fillStyle = 'black';
         ctx.beginPath();
-        ctx.arc(worker.x, worker.y, 5, 0, Math.PI * 2);
+        ctx.arc(worker.x, worker.y, 5 * scaleFactor, 0, Math.PI * 2);
         ctx.fill();
     });
 
@@ -445,8 +454,8 @@ function moveTowards(obj, target) {
     let dy = target.y - obj.y;
     let dist = Math.sqrt(dx * dx + dy * dy);
     if (dist > 0) {
-        obj.x += (dx / dist) * obj.speed;
-        obj.y += (dy / dist) * obj.speed;
+        obj.x += (dx / dist) * obj.speed * scaleFactor;
+        obj.y += (dy / dist) * obj.speed * scaleFactor;
     }
 }
 
@@ -771,12 +780,6 @@ function removeWorkerFromBuilding(buildingType) {
     } else {
         alert('V této budově nemáš žádné workery!');
     }
-}
-
-// Funkce pro vykreslení ovládacích prvků pro obchodování
-function renderTradingControls() {
-    if (!enableTrading) return;
-    // Implementace obchodování může být přidána zde
 }
 
 // Funkce pro ukládání hry (automatické)
