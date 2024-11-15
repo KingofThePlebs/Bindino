@@ -1,89 +1,46 @@
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
 body {
-  background-color: #f4f4f4;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  overflow: hidden;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
 }
 
-.game-container {
-  position: relative;
-  width: 80vw; /* Použití šířky obrazovky 80% */
-  height: 200px;
-  background-color: #fff;
-  border: 2px solid #000;
-  overflow: hidden;
+#gameCanvas {
+    display: block;
+    background-color: #f0f0f0;
 }
 
-#player {
-  position: absolute;
-  width: 40px;
-  height: 40px;
-  background-color: green;
-  bottom: 0;
-  left: 50px;
+#craftingTable {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    background-color: #ccc;
+    padding: 10px;
+    text-align: center;
 }
 
-.obstacle {
-  position: absolute;
-  width: 20px;
-  height: 40px;
-  background-color: red;
-  bottom: 0;
-  right: 0;
+#craftingTable h2 {
+    margin: 0;
+    padding: 0;
 }
 
-#coin {
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  background-color: yellow;
-  border-radius: 50%;
-  display: none; /* Na začátku je coin skrytý */
+#craftingTable table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 10px;
 }
 
-#score, #time, #highscore {
-  position: absolute;
-  top: 10px;
-  font-size: 20px;
-  color: black;
+#craftingTable th, #craftingTable td {
+    border: 1px solid #999;
+    padding: 8px;
+    text-align: center;
 }
 
-#score {
-  left: 10px;
+#craftingTable th {
+    background-color: #eee;
 }
 
-#time {
-  right: 10px;
-}
-
-#highscore {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 20px;
-  color: black;
-}
-
-/* Responzivní design pro mobilní zařízení */
-@media (max-width: 768px) {
-  .game-container {
-      width: 90vw; /* Šířka na mobilních zařízeních */
-  }
-  #player {
-      width: 30px;
-      height: 30px;
-  }
-  .obstacle {
-      width: 15px;
-      height: 30px;
-  }
+#saveButton {
+    padding: 10px 20px;
+    font-size: 16px;
 }
