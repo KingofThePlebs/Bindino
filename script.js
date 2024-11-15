@@ -4,6 +4,7 @@ const ctx = canvas.getContext('2d');
 
 // Globální proměnné
 let scaleFactor = 1; // Výchozí měřítko
+let devicePixelRatio = window.devicePixelRatio || 1; // Poměr pixelů zařízení
 
 // Responzivní nastavení velikosti canvasu
 function resizeCanvas() {
@@ -12,15 +13,27 @@ function resizeCanvas() {
 
     if (isMobile) {
         // Na mobilních zařízeních nastavíme menší rozměry
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight * 0.6; // Můžete přizpůsobit podle potřeby
+        const displayWidth = window.innerWidth;
+        const displayHeight = window.innerHeight * 0.6; // Můžete přizpůsobit podle potřeby
+        canvas.style.width = `${displayWidth}px`;
+        canvas.style.height = `${displayHeight}px`;
+        canvas.width = displayWidth * devicePixelRatio;
+        canvas.height = displayHeight * devicePixelRatio;
         scaleFactor = 0.33; // Zmenšíme objekty na třetinu velikosti
     } else {
         // Na PC nastavíme canvas tak, aby zabíral celou výšku okna
-        canvas.width = window.innerWidth - 300; // Odečteme šířku UI
-        canvas.height = window.innerHeight;
+        const displayWidth = window.innerWidth - 300; // Odečteme šířku UI
+        const displayHeight = window.innerHeight;
+        canvas.style.width = `${displayWidth}px`;
+        canvas.style.height = `${displayHeight}px`;
+        canvas.width = displayWidth * devicePixelRatio;
+        canvas.height = displayHeight * devicePixelRatio;
         scaleFactor = 1; // Plná velikost
     }
+
+    // Reset transformace a nastavíme měřítko podle poměru pixelů
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(devicePixelRatio, devicePixelRatio);
 
     // Aktualizujeme pozice vesnice a lokací surovin
     updatePositions();
@@ -28,15 +41,18 @@ function resizeCanvas() {
 
 // Funkce pro aktualizaci pozic vesnice a surovin
 function updatePositions() {
-    village.x = canvas.width / 2;
-    village.y = canvas.height / 2;
+    const displayWidth = canvas.width / devicePixelRatio;
+    const displayHeight = canvas.height / devicePixelRatio;
+
+    village.x = displayWidth / 2;
+    village.y = displayHeight / 2;
 
     resourceLocations = [
-        { x: canvas.width * 0.25, y: canvas.height * 0.25, type: 'wood', name: 'Les' },
-        { x: canvas.width * 0.75, y: canvas.height * 0.25, type: 'stone', name: 'Kamenolom' },
-        { x: canvas.width * 0.25, y: canvas.height * 0.75, type: 'coal', name: 'Uhelný důl' },
-        { x: canvas.width * 0.75, y: canvas.height * 0.75, type: 'iron', name: 'Železný důl' },
-        { x: canvas.width / 2, y: canvas.height * 0.85, type: 'gold', name: 'Zlatý důl' }
+        { x: displayWidth * 0.25, y: displayHeight * 0.25, type: 'wood', name: 'Les' },
+        { x: displayWidth * 0.75, y: displayHeight * 0.25, type: 'stone', name: 'Kamenolom' },
+        { x: displayWidth * 0.25, y: displayHeight * 0.75, type: 'coal', name: 'Uhelný důl' },
+        { x: displayWidth * 0.75, y: displayHeight * 0.75, type: 'iron', name: 'Železný důl' },
+        { x: displayWidth / 2, y: displayHeight * 0.85, type: 'gold', name: 'Zlatý důl' }
     ];
 
     // Aktualizace pozic workerů
@@ -333,6 +349,9 @@ function update() {
 // Vykreslení hry
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const displayWidth = canvas.width / devicePixelRatio;
+    const displayHeight = canvas.height / devicePixelRatio;
 
     // Vykreslení vesnice (kosočtverec)
     let villageSize = (village.size + villageGrowth) * scaleFactor;
